@@ -15,7 +15,7 @@ class StorageNedbPlugin {
 }
 
 class StorageNedbApi {
-    StorageNedbApi(plugin, types, options) {
+    constructor (plugin, types, options) {
         this.options = options || {};
         this.db = {};
         for(let type of types) {
@@ -42,7 +42,7 @@ class StorageNedbApi {
     getObjectByField(oInfo, type, field, content) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (this.options.checkGetPermission) {
+                if (oInfo && this.options.checkGetPermission) {
                     await this.options.checkGetPermission(oInfo, type);
                 }
             } catch (e) {
@@ -75,14 +75,14 @@ class StorageNedbApi {
                 reject("Permission denied")
                 return;
             }
-            this.db[type].insert(obj, (err, docs) => {
-                if (err) {
-                    reject(`Adding ${type} failed:` + err);
-                } else {
+            this.db[type].insert(obj, (err, obj) => {
+                if (!err && obj) {
                     if (this.options.insertedCallback) {
                         this.options.insertedCallback(type, obj._id);
                     }
-                    resolve(true);
+                    resolve(obj);
+                } else {
+                    reject(`Adding ${type} failed:` + err);
                 }
             });
         });

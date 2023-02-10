@@ -34,8 +34,9 @@ class AuthSimplePlugin {
     this.api = new AuthSimpleApi(this, this.storage, usersType, sessionsType);
   }
 
-  checksession (oInfo, req, res, method) {
+  checksession (oInfo, req, res, user, method) {
     return new Promise((resolve, reject) => {
+      console.log("method:" + method + ".");
       if (method == "login") {
         resolve();
         return;
@@ -113,8 +114,9 @@ class AuthSimpleApi {
             const hash = crypto.createHash('sha256');
             hash.update(username + "SessionKey" + Date.now());
             const sessionkey = hash.digest('hex');
-            this.storage.api.addObject(null, this.sessionsType, { userid: users[0]._id, username, timestamp: Date.now(), sessionkey })
-              .then((session) => {
+            const session = { userid: users[0]._id, username, timestamp: Date.now(), sessionkey };
+            this.storage.api.addObject(null, this.sessionsType, session)
+              .then((ok) => {
                 resolve(session);
               })
               .catch((e) => {

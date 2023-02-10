@@ -12,7 +12,7 @@ class WebserverResponseSent {
 }
 
 function handleApiObject(map, what, apiobject, requrl, req, res, failcount) {
-  if (what.substring(0, 14) == "sse/connection") {
+  if (what == "connection") {
     let fnname = "__SSE__";
     var oInfo = {};
     var promise = Promise.resolve();
@@ -96,9 +96,14 @@ function handleApiObject(map, what, apiobject, requrl, req, res, failcount) {
       return;
     }
     try {
-      if (what.substring(0, 12) == "sse/register") {
+      if (what == "register") {
         for (let fnname of parameters) {
-          if (!apiobject || !apiobject[fnname]) {
+          if (!apiobject) {
+            console.log("SSE no apiobject")
+            continue;
+          }
+          if (!apiobject[fnname]) {
+            console.log("SSE no fnname " + fnname)
             continue;
           }
           if (!apiobject.__internal_ssefunctions) {
@@ -581,35 +586,41 @@ module.exports = {
             return;
           }
 
-          if (map.core) {
-            let what = requrl.substr(map.urlprefix.length + 1);
-            var i = what.indexOf("/");
-            var plugin = "core";
-            if (i >= 0) {
-              plugin = what.substring(0, i);
-              what = what.substring(i + 1);
-            }
-
-console.log("XXX:" + requrl + "," + plugin + "," + what);
-
-            var oInfo = {};
-            map.core.checksession (oInfo, req, res, plugin, what)
-            .then(() => {
-              var api = map.core.getApiForPlugin(plugin);
-              if (api) {
-                handleApiObject(map, what, api, requrl, req, res, failcount);
-                return;
+          if (bExact || bPrefix) {
+            if (map.core) {
+              let what = requrl.substr(map.urlprefix.length + 1);
+              var i = what.indexOf("/");
+              var plugin = "core";
+              if (i >= 0) {
+                plugin = what.substring(0, i);
+                what = what.substring(i + 1);
               }
-            })
-            .catch((e) => {
-              res.writeHead(403, {
-                'Content-Type': "text/plain",
-                'Cache-Control': 'no-cache',
-                'Vary': '*',
+
+  console.log("XXX:" + requrl + "," + plugin + "," + what);
+
+              var oInfo = {};
+              map.core.checksession (oInfo, req, res, plugin, what)
+              .then(() => {
+                var api = map.core.getApiForPlugin(plugin);
+                if (api) {
+                  if(plugin == "sse" && (what == "connection" || what == "register")) {
+                    handleApiObject(map, what, api, requrl, req, res, failcount);
+                  } else {
+                    handleApiObject(map, "method/" + what, api, requrl, req, res, failcount);
+                  }
+                  return;
+                }
+              })
+              .catch((e) => {
+                res.writeHead(403, {
+                  'Content-Type': "text/plain",
+                  'Cache-Control': 'no-cache',
+                  'Vary': '*',
+                });
+                res.end("User unauthorized by core: " + e);
               });
-              res.end("User unauthorized by core: " + e);
-            });
-            return;
+              return;
+            }
           }
         }
       } catch(e) {

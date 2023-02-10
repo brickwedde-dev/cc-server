@@ -3,9 +3,6 @@ var { createWebserver } = require('./webserver4.js');
 class Core {
     constructor() {
         this.api = new CoreApi(this);
-        setInterval(() => {
-            this.api.testsse(Date.now());
-        }, 10000);
 
         this.plugins = {};
         this.plugins["core"] = this;
@@ -30,7 +27,7 @@ class Core {
             .then(() => {
                 console.log("auth plugin success")
                 var pluginPromise = Promise.resolve();
-                if (plugin != "core" && this.plugins[plugin].checksession) {
+                if (plugin != "core" && plugin != "auth" && this.plugins[plugin].checksession) {
                     pluginPromise = this.plugins[plugin].checksession(oInfo, req, res, oInfo.user, method)
                 }
 
@@ -47,9 +44,12 @@ class Core {
             .catch((e) => {
                 console.log("auth plugin failed " + e)
                 console.log("checking plugin " + plugin)
-                var pluginPromise = Promise.reject("core plugin reject");
-                if (plugin != "core" && this.plugins[plugin].checksession) {
+                var pluginPromise = null;
+                if (plugin != "core" && this.plugins[plugin] && this.plugins[plugin].checksession) {
                     pluginPromise = this.plugins[plugin].checksession(oInfo, req, res, oInfo.user, method)
+                }
+                if (!pluginPromise) {
+                    pluginPromise = Promise.reject("core plugin reject");
                 }
 
                 pluginPromise
@@ -70,7 +70,7 @@ class Core {
     }
 
     getApiForPlugin(plugin) {
-        return this.plugins[plugin];
+        return this.plugins[plugin] && this.plugins[plugin].api || undefined;
     }
 }
 
@@ -85,13 +85,6 @@ class CoreApi {
                 resolve("");
             }, 10000);
         })
-    }
-
-    // checksession (oInfo, req, res, user, method) {
-    //     return Promise.resolve();
-    // }
-
-    testsse (oInfo) {
     }
 }
 
