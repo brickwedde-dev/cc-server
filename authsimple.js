@@ -34,7 +34,7 @@ class AuthSimplePlugin {
     this.api = new AuthSimpleApi(this, this.storage, usersType, sessionsType);
   }
 
-  checksession (oInfo, req, res, user, method) {
+  checksession (oInfo, req, res, method) {
     return new Promise((resolve, reject) => {
       if (method == "login") {
         resolve();

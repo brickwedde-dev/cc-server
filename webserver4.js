@@ -553,7 +553,12 @@ module.exports = {
                 })
                 .catch(err => {
 //                  console.error(err);
-                  res.setHeader("X-Exception", `${err}`);
+                  try {
+                    res.setHeader("X-Exception", `${err}`);
+                  }
+                  catch (e) {
+                    console.error(e);
+                  }
                   try {
                     if (!failcount[req.socket.remoteAddress]) {
                       failcount[req.socket.remoteAddress] = 0
@@ -568,38 +573,43 @@ module.exports = {
                 });
               return;
             }
+          }
 
-            if (map.apiobject) {
-              let what = requrl.substr(map.urlprefix.length + 1);
-              handleApiObject(map, what, map.apiobject, requrl, req, res, failcount);
-              return;
+          if (map.apiobject) {
+            let what = requrl.substr(map.urlprefix.length + 1);
+            handleApiObject(map, what, map.apiobject, requrl, req, res, failcount);
+            return;
+          }
+
+          if (map.core) {
+            let what = requrl.substr(map.urlprefix.length + 1);
+            var i = what.indexOf("/");
+            var plugin = "core";
+            if (i >= 0) {
+              plugin = what.substring(0, i);
+              what = what.substring(i + 1);
             }
 
-            if (map.core) {
-              let what = requrl.substr(map.urlprefix.length + 1);
-              var i = what.indexOf("/");
-              var plugin = "core";
-              if (i >= 0) {
-                plugin = what.substring(0, i);
-                what = what.substring(i);
+console.log("XXX:" + requrl + "," + plugin + "," + what);
+
+            var oInfo = {};
+            map.core.checksession (oInfo, req, res, plugin, what)
+            .then(() => {
+              var api = map.core.getApiForPlugin(plugin);
+              if (api) {
+                handleApiObject(map, what, api, requrl, req, res, failcount);
+                return;
               }
-              map.core.checksession (oInfo, req, res, user, plugin, what)
-              .then(() => {
-                var api = map.core.getApiForPlugin(plugin);
-                if (api) {
-                  handleApiObject(map, what, api, requrl, req, res, failcount);
-                  return;
-                }
-              })
-              .catch((e) => {
-                res.writeHead(403, {
-                  'Content-Type': "text/plain",
-                  'Cache-Control': 'no-cache',
-                  'Vary': '*',
-                });
-                res.end("User unauthorized by core: " + e);
+            })
+            .catch((e) => {
+              res.writeHead(403, {
+                'Content-Type': "text/plain",
+                'Cache-Control': 'no-cache',
+                'Vary': '*',
               });
-            }
+              res.end("User unauthorized by core: " + e);
+            });
+            return;
           }
         }
       } catch(e) {
