@@ -11,8 +11,7 @@ var maintainerEmail = "nobody@invalid.domain.name";
 class WebserverResponseSent {
 }
 
-function handleApiObject(map, apiobject, requrl, req, res, failcount) {
-  let what = requrl.substr(map.urlprefix.length + 1);
+function handleApiObject(map, what, apiobject, requrl, req, res, failcount) {
   if (what.substring(0, 14) == "sse/connection") {
     let fnname = "__SSE__";
     var oInfo = {};
@@ -571,12 +570,23 @@ module.exports = {
             }
 
             if (map.apiobject) {
-              handleApiObject(map, map.apiobject, requrl, req, res, failcount);
+              let what = requrl.substr(map.urlprefix.length + 1);
+              handleApiObject(map, what, map.apiobject, requrl, req, res, failcount);
               return;
             }
 
             if (map.core) {
-              handleApiObject(map, map.core.api, requrl, req, res, failcount);
+              let what = requrl.substr(map.urlprefix.length + 1);
+              var i = what.indexOf("/");
+              var plugin = "core";
+              if (i >= 0) {
+                plugin = what.substring(0, i);
+                what = what.substring(i);
+              }
+              var api = map.core.getApiForPlugin(plugin);
+              if (api) {
+                handleApiObject(map, what, api, requrl, req, res, failcount);
+              }
               return;
             }
           }
