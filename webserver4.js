@@ -19,7 +19,7 @@ function handleApiObject(map, what, apiobject, requrl, req, res, failcount) {
     if (apiobject.checksession) {
       let user = {};
       try {
-      promise = apiobject.checksession(oInfo, req, res, user, fnname);
+        promise = apiobject.checksession(oInfo, req, res, user, fnname);
       } catch(e) {
         console.log("checksession failed", e)
       }
@@ -54,15 +54,15 @@ function handleApiObject(map, what, apiobject, requrl, req, res, failcount) {
         }
       });
     })
-      .catch((e) => {
+    .catch((e) => {
       console.log("sse failed", e)
         res.writeHead(500, {
           'Content-Type': "text/plain",
           'Cache-Control': 'no-cache',
           'Vary': '*',
-        });
-        res.end("" + e);
       });
+      res.end("" + e);
+    });
     return;
   }
 
@@ -583,11 +583,22 @@ module.exports = {
                 plugin = what.substring(0, i);
                 what = what.substring(i);
               }
-              var api = map.core.getApiForPlugin(plugin);
-              if (api) {
-                handleApiObject(map, what, api, requrl, req, res, failcount);
-              }
-              return;
+              map.core.checksession (oInfo, req, res, user, plugin, what)
+              .then(() => {
+                var api = map.core.getApiForPlugin(plugin);
+                if (api) {
+                  handleApiObject(map, what, api, requrl, req, res, failcount);
+                  return;
+                }
+              })
+              .catch((e) => {
+                res.writeHead(403, {
+                  'Content-Type': "text/plain",
+                  'Cache-Control': 'no-cache',
+                  'Vary': '*',
+                });
+                res.end("User unauthorized by core: " + e);
+              });
             }
           }
         }

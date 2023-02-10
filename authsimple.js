@@ -16,22 +16,22 @@ function getBearerFromReq (req) {
 }
 
 class AuthSimplePlugin {
-  constructor(storage, usersType, sessionsType) {
+  constructor(storagePlugin, usersType, sessionsType) {
     this.usersType = usersType;
     this.sessionsType = sessionsType;
-    this.storage = storage;
-    this.storage.getObjectByField(null, this.usersType, "username", "admin")
+    this.storage = storagePlugin;
+    this.storage.api.getObjectByField(null, this.usersType, "username", "admin")
       .then((users) => {
         if (users.length == 0) {
           const hash = crypto.createHash('sha256');
           hash.update("admin::v1");
           const pw = hash.digest('hex');
-          this.storage.addObject(null, this.usersType, { username: `admin`, forename: `Admin`, surname: `User`, secrettype: `password`, secret: pw, features: { "admin": true } });
+          this.storage.api.addObject(null, this.usersType, { username: `admin`, forename: `Admin`, surname: `User`, secrettype: `password`, secret: pw, features: { "admin": true } });
         }
       })
       .catch((e) => {
       });
-    this.api = new AuthSimpleApi(this, storage, usersType, sessionsType);
+    this.api = new AuthSimpleApi(this, this.storage, usersType, sessionsType);
   }
 
   checksession (oInfo, req, res, user, method) {
@@ -42,11 +42,11 @@ class AuthSimplePlugin {
       }
       var bearer = getBearerFromReq(req);
       if (bearer) {
-        this.storage.getObjectByField(null, this.sessionsType, "sessionkey", bearer)
+        this.storage.api.getObjectByField(null, this.sessionsType, "sessionkey", bearer)
           .then((sessions) => {
             if (sessions.length > 0) {
               if (method == "invalidatesession") {
-                this.storage.deleteObject(null, this.sessionsType, sessions[0]._id)
+                this.storage.api.deleteObject(null, this.sessionsType, sessions[0]._id)
                   .then(() => {
                     reject();
                   }).catch((e) => {
@@ -55,7 +55,7 @@ class AuthSimplePlugin {
                 return;
               }
               oInfo.session = sessions[0];
-              this.storage.getObjectByField(null, this.usersType, "username", oInfo.session.username)
+              this.storage.api.getObjectByField(null, this.usersType, "username", oInfo.session.username)
                 .then((users) => {
                   if (users.length > 0) {
                     oInfo.user = users[0];
@@ -107,13 +107,13 @@ class AuthSimpleApi {
       const hash = crypto.createHash('sha256');
       hash.update(`${username}:${password}:v1`);
       password = hash.digest('hex');
-      this.storage.getObjectByField(null, this.usersType, "username", username)
+      this.storage.api.getObjectByField(null, this.usersType, "username", username)
         .then((users) => {
           if (users.length > 0 && users[0].secrettype == `password` && users[0].secret == password) {
             const hash = crypto.createHash('sha256');
             hash.update(username + "SessionKey" + Date.now());
             const sessionkey = hash.digest('hex');
-            this.storage.addObject(null, this.sessionsType, { userid: users[0]._id, username, timestamp: Date.now(), sessionkey })
+            this.storage.api.addObject(null, this.sessionsType, { userid: users[0]._id, username, timestamp: Date.now(), sessionkey })
               .then((session) => {
                 resolve(session);
               })
@@ -136,13 +136,13 @@ class AuthSimpleApi {
       hash.update(`${oInfo.session.username}:${oldpassword}:v1`);
       var secret = hash.digest('hex');
       console.log({ secret, _id: oInfo.session.userid });
-      this.storage.getObjectByField(null, this.usersType, "_id", oInfo.session.userid)
+      this.storage.api.getObjectByField(null, this.usersType, "_id", oInfo.session.userid)
         .then((users) => {
           if (users.length > 0 && users[0].secrettype == `password` && users[0].secret == secret) {
             var hash = crypto.createHash('sha256');
             hash.update(`${oInfo.session.username}:${newpassword}:v1`);
             users[0].secret = hash.digest('hex');
-            this.storage.updateObject(null, this.usersType, users[0])
+            this.storage.api.updateObject(null, this.usersType, users[0])
               .then(() => {
                 resolve(true);
               })

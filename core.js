@@ -7,15 +7,36 @@ class Core {
             this.api.testsse(Date.now());
         }, 10000);
 
-        this.plugins = [];
-        this.storages = [];
+        this.plugins = {};
+        this.plugins["core"] = this;
     }
 
-    checksession (oInfo, req, res, user, method) {
-        if (this.authPlugin) {
-            return this.authPlugin.api.checksession(oInfo, req, res, user, method);
+    addPlugin(name, plugin) {
+        this.plugins[name] = plugin;
+    }
+
+    checksession (oInfo, req, res, user, plugin, method) {
+        var authPromise = Promise.reject();
+        if (this.plugins["auth"]) {
+            authPromise = this.plugins["auth"].checksession(oInfo, req, res, user, method);
         }
-        return Promise.reject();
+        var pluginPromise = Promise.reject();
+        if (this.plugins[plugin].checksession) {
+            pluginPromise = this.plugins[plugin].checksession(oInfo, req, res, user, method)
+        }
+
+        return new Promise((resolve, reject) => {
+            authPromise
+            .then(() => {
+                pluginPromise
+                .then((v) => {
+                    resolve(v);
+                })
+                .catch((e) => {
+                    reject(e);
+                })
+            })
+        });
     }
 
     createWebServer1 (bind, port, privkey, fullchain, domains, mapping) {
@@ -23,13 +44,7 @@ class Core {
     }
 
     getApiForPlugin(plugin) {
-        switch (plugin) {
-            case "core":
-                return this.api;
-            case "auth":
-                return this.authPlugin.api;
-        }
-        return null;
+        return this.plugins[plugin];
     }
 }
 

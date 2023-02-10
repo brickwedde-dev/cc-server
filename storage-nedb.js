@@ -1,7 +1,21 @@
 var Datastore = require('nedb');
 
+const { getBearerFromReq } = require("./authsimple.js");
+
+class StorageNedbPlugin {
+  constructor(types, options) {
+    this.api = new StorageNedbApi(this, types, options);
+  }
+
+  checksession (oInfo, req, res, user, method) {
+    return new Promise((resolve, reject) => {
+        resolve(true);
+    });
+  }
+}
+
 class StorageNedbApi {
-    StorageNedbApi(types, options) {
+    StorageNedbApi(plugin, types, options) {
         this.options = options || {};
         this.db = {};
         for(let type of types) {
@@ -117,4 +131,4 @@ class StorageNedbApi {
     }
 }
 
-module.exports = { StorageNedbApi };
+module.exports = { StorageNedbPlugin };
