@@ -19,7 +19,7 @@ class StorageNedbApi {
         this.options = options || {};
         this.db = {};
         for(let type of types) {
-            this.db[type] = new Datastore({ filename: `./db/${type}.db`, autoload: true });
+            this.db[type] = new Datastore({ filename: `../db/${type}.db`, autoload: true });
         }
     }
 
