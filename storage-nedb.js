@@ -26,14 +26,16 @@ class StorageNedbApi {
     listObjects(oInfo, type) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (this.options.checkListPermission) {
+                if (oInfo && this.options.checkListPermission) {
                     await this.options.checkListPermission(oInfo, type);
                 }
             } catch (e) {
                 reject("Permission denied")
                 return;
             }
+            console.log("listObjects", type)
             this.db[type].find({}, (err, docs) => {
+                console.log("listObjects", type, docs)
                 resolve(docs);
             });
         });
@@ -98,12 +100,13 @@ class StorageNedbApi {
                 reject("Permission denied")
                 return;
             }
+            let that = this;
             this.db[type].update({ _id: obj._id }, { $set: obj }, { }, function (err, numReplaced) {
                 if (err || numReplaced < 1) {
                     reject(`Modifying ${type} failed:` + err + " " + numReplaced);
                 } else {
-                    if (this.options.updatedCallback) {
-                        this.options.updatedCallback(type, obj._id);
+                    if (that.options && that.options.updatedCallback) {
+                        that.options.updatedCallback(type, obj._id);
                     }
                     resolve(true);
                 }
@@ -121,7 +124,7 @@ class StorageNedbApi {
                 reject("Permission denied")
                 return;
             }
-            db[type].remove({_id : objId}, (err, docs) => {
+            this.db[type].remove({_id : objId}, (err, docs) => {
                 if (this.options.deleteCallback) {
                     this.options.deleteCallback(type, objId);
                 }

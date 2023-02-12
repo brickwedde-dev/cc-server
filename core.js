@@ -12,29 +12,35 @@ class Core {
         this.plugins[name] = plugin;
     }
 
-    checksession (oInfo, req, res, plugin, method) {
-        console.log("Core checksession " + plugin + ":" + method);
+    getsession (oInfo, req, res, plugin, method) {
+        console.log("Core getsession " + plugin + ":" + method);
+        console.log("oInfo:", JSON.stringify(oInfo))
         var authPromise = null;
         if (this.plugins["auth"]) {
-            authPromise = this.plugins["auth"].checksession(oInfo, req, res, method);
+            authPromise = this.plugins["auth"].getsession(oInfo, req, res, method);
         }
         if (!authPromise) {
-            authPromise = Promise.reject("core auth reject");
+            authPromise = Promise.reject("core no auth plugin");
         }
 
         return new Promise((resolve, reject) => {
             authPromise
-            .then(() => {
+            .then((oInfoNew) => {
                 console.log("auth plugin success")
-                var pluginPromise = Promise.resolve();
-                if (plugin != "core" && plugin != "auth" && this.plugins[plugin].checksession) {
+
+                var pluginPromise = null;
+                if (this.plugins[plugin].checksession) {
+                    console.log("checking plugin " + plugin)
                     pluginPromise = this.plugins[plugin].checksession(oInfo, req, res, oInfo.user, method)
+                }
+                if (!pluginPromise) {
+                    pluginPromise = Promise.resolve(oInfo);
                 }
 
                 pluginPromise
-                .then((v) => {
+                .then((oInfoNew2) => {
                     console.log("used plugin success")
-                    resolve(v);
+                    resolve(oInfo);
                 })
                 .catch((e) => {
                     console.log("used plugin failed " + e)
@@ -43,9 +49,10 @@ class Core {
             })
             .catch((e) => {
                 console.log("auth plugin failed " + e)
-                console.log("checking plugin " + plugin)
+
                 var pluginPromise = null;
-                if (plugin != "core" && this.plugins[plugin] && this.plugins[plugin].checksession) {
+                if (this.plugins[plugin].checksession) {
+                    console.log("checking plugin " + plugin)
                     pluginPromise = this.plugins[plugin].checksession(oInfo, req, res, oInfo.user, method)
                 }
                 if (!pluginPromise) {

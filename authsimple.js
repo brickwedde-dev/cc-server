@@ -34,11 +34,11 @@ class AuthSimplePlugin {
     this.api = new AuthSimpleApi(this, this.storage, usersType, sessionsType);
   }
 
-  checksession (oInfo, req, res, user, method) {
+  getsession (oInfo, req, res, method) {
     return new Promise((resolve, reject) => {
       console.log("method:" + method + ".");
       if (method == "login") {
-        resolve();
+        resolve(oInfo);
         return;
       }
       var bearer = getBearerFromReq(req);
@@ -60,7 +60,7 @@ class AuthSimplePlugin {
                 .then((users) => {
                   if (users.length > 0) {
                     oInfo.user = users[0];
-                    resolve();
+                    resolve(oInfo);
                   } else {
                     reject(`Session got invalid, user removed`);
                   }
@@ -84,6 +84,16 @@ class AuthSimplePlugin {
       reject(`No Headers found`);
       return;
     });
+  }
+
+  checksession (oInfo, req, res, user, method) {
+    if (method == "login") {
+      return Promise.resolve(oInfo);
+    }
+    if (!oInfo.session) {
+      return Promise.reject("Unauthorized");
+    }
+    return Promise.resolve(oInfo);
   }
 }
 
@@ -157,6 +167,62 @@ class AuthSimpleApi {
         })
         .catch((e) => {
           reject(`Changing password auth '${oInfo.session.username}' failed 1`);
+        });
+    });
+  }
+
+  listUsers(oInfo) {
+    if (!oInfo.user.features.admin) {
+        return Promise.reject("Not Admin!");
+    }
+    return this.storage.api.listObjects(oInfo, this.usersType);
+  }
+
+  addUser(oInfo, user) {
+    if (!oInfo.user.features.admin) {
+        return Promise.reject("Not Admin!");
+    }
+    return this.storage.api.addObject(oInfo, this.usersType, user);
+  }
+
+  updateUser(oInfo, user) {
+    if (!oInfo.user.features.admin) {
+        return Promise.reject("Not Admin!");
+    }
+    return this.storage.api.updateObject(oInfo, this.usersType, user);
+  }
+
+  deleteUser(oInfo, id) {
+    if (!oInfo.user.features.admin) {
+        return Promise.reject("Not Admin!");
+    }
+    return this.storage.api.deleteObject(oInfo, this.usersType, id);
+  }
+
+  resetUserPassword(oInfo, user) {
+    if (!oInfo.user.features.admin) {
+        return Promise.reject("Not Admin!");
+    }
+    return new Promise((resolve, reject) => {
+      this.storage.api.getObjectByField(null, this.usersType, "_id", user._id)
+        .then((users) => {
+          if (users.length > 0 && users[0].secrettype == `password`) {
+            const hash = crypto.createHash('sha256');
+            hash.update(user.username + "::v1");
+            users[0].secret = hash.digest('hex');
+            this.storage.api.updateObject(oInfo, this.usersType, users[0])
+              .then(() => {
+                resolve(true);
+              })
+              .catch((e) => {
+                reject(`Resetting password '${user.username}' failed 3`);
+              });
+          } else {
+            reject(`Resetting password '${user.username}' failed 2`);
+          }
+        })
+        .catch((e) => {
+          reject(`Resetting password '${user.username}' failed 1 ` + e);
         });
     });
   }

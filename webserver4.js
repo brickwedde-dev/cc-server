@@ -11,10 +11,9 @@ var maintainerEmail = "nobody@invalid.domain.name";
 class WebserverResponseSent {
 }
 
-function handleApiObject(map, what, apiobject, requrl, req, res, failcount) {
+function handleApiObject(oInfo, map, what, apiobject, requrl, req, res, failcount) {
   if (what == "connection") {
     let fnname = "__SSE__";
-    var oInfo = {};
     var promise = Promise.resolve();
     if (apiobject.checksession) {
       let user = {};
@@ -146,7 +145,7 @@ function handleApiObject(map, what, apiobject, requrl, req, res, failcount) {
           throw "Function " + fnname + " not found";
         }
 
-        let oInfo = { };
+//        let oInfo = { };
         let promise = Promise.resolve();
         if (apiobject.checksession) {
           let user = {};
@@ -581,8 +580,9 @@ module.exports = {
           }
 
           if (map.apiobject) {
+            let oInfo = {};
             let what = requrl.substr(map.urlprefix.length + 1);
-            handleApiObject(map, what, map.apiobject, requrl, req, res, failcount);
+            handleApiObject(oInfo, map, what, map.apiobject, requrl, req, res, failcount);
             return;
           }
 
@@ -599,14 +599,14 @@ module.exports = {
   console.log("XXX:" + requrl + "," + plugin + "," + what);
 
               var oInfo = {};
-              map.core.checksession (oInfo, req, res, plugin, what)
-              .then(() => {
+              map.core.getsession (oInfo, req, res, plugin, what)
+              .then((oInfo2) => {
                 var api = map.core.getApiForPlugin(plugin);
                 if (api) {
                   if(plugin == "sse" && (what == "connection" || what == "register")) {
-                    handleApiObject(map, what, api, requrl, req, res, failcount);
+                    handleApiObject(oInfo, map, what, api, requrl, req, res, failcount);
                   } else {
-                    handleApiObject(map, "method/" + what, api, requrl, req, res, failcount);
+                    handleApiObject(oInfo, map, "method/" + what, api, requrl, req, res, failcount);
                   }
                   return;
                 }
