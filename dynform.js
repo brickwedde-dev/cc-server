@@ -1,18 +1,29 @@
+const crypto = require('crypto');
 const fs = require('fs').promises;
+
+let isObject = function(a) {
+    return (!!a) && (a.constructor === Object);
+};
 
 function recurseNames(names, obj) {
   if (obj) {
     if (obj.name) {
       names[obj.name] = obj;
     }
-    for(var i in obj) {
-      recurseNames(names, obj[i]);
+    if (Array.isArray(obj)) {
+      for(var i = 0; i < obj.length; i++) {
+        recurseNames(names, obj[i]);
+      }
+    } else if (isObject(obj)) {
+      for(var i in obj) {
+        recurseNames(names, obj[i]);
+      }
     }
   }
 }
 
 class DynamicFormPlugin {
-  constructor(api) {
+  constructor() {
     this.api = new DynamicFormApi(this);
   }
 
@@ -22,9 +33,25 @@ class DynamicFormPlugin {
 }
 
 class DynamicFormApi {
+  getDefinition(oInfo, formtype) {
+    formtype = ("" + formtype).replace(/\.\./g, "_") + ".json";
+
+    return new Promise(async (resolve, reject) => {
+      var formdef = await fs.readFile("../dynform/definition/" + formtype);
+      try {
+        if (formdef) {
+          formdef = JSON.parse(formdef);
+          resolve(formdef);
+        }
+      } catch (e) {
+      }
+      reject("Parameter error");
+    });
+  }
+
   load(oInfo, type, formtype, objectid) {
     type = type.replace(/[/\\?%*:|"<>\\.]/g, '-');
-    formtype = ("" + formtype).replace(/\.\./g, "_");
+    formtype = ("" + formtype).replace(/\.\./g, "_") + ".json";
 
     return new Promise(async (resolve, reject) => {
       var anonymous = true;
@@ -56,8 +83,6 @@ class DynamicFormApi {
         try {
           await fs.mkdir("../dynform/storage/" + type);
         } catch (e) {
-          reject("Cannot create dynform folder");
-          return;
         }
   
         try {
@@ -86,7 +111,7 @@ class DynamicFormApi {
 
   save(oInfo, type, formtype, obj) {
     type = type.replace(/[/\\?%*:|"<>\\.]/g, '-');
-    formtype = ("" + formtype).replace(/\.\./g, "_");
+    formtype = ("" + formtype).replace(/\.\./g, "_") + ".json";
 
     return new Promise(async (resolve, reject) => {
       var anonymous = true;
@@ -137,7 +162,9 @@ class DynamicFormApi {
         saveobj.objectid = "" + obj.objectid;
       }
       if (!saveobj.objectid) {
-        saveobj.objectid = "" + org.jawese.Hash.md5("" + new Date().getTime());
+        const hash = crypto.createHash('sha256');
+        hash.update("" + new Date().getTime());
+        saveobj.objectid = hash.digest('hex');
       }
 
       var names = {};
@@ -177,12 +204,18 @@ class DynamicFormApi {
 
       try {
         await fs.mkdir("../dynform/storage/" + type);
-      } catch (e) {}
+      } catch (e) {
+      }
 
       var aFiles = [];
       var dir = await fs.opendir("../dynform/storage/" + type);
       for await (const dirent of dir) {
-        aFiles.push(await fs.readFile(dirent));
+        try {
+          if(dirent.isFile()) {
+            aFiles.push(JSON.parse(await fs.readFile("../dynform/storage/" + type + "/" + dirent.name)));
+          }
+        } catch (e) {
+        }
       }
       resolve(aFiles);
     });
@@ -215,7 +248,10 @@ class DynamicFormApi {
       var aFiles = [];
       var dir = await fs.opendir("../dynform/storage/" + type);
       for await (const dirent of dir) {
-        var s = await fs.readFile(dirent)
+        if (!dirent.isFile()) {
+          continue;
+        }
+        var s = await fs.readFile("../dynform/storage/" + type + "/" + dirent.name)
         var o = JSON.parse(s)
         if ((o.ablaufdatum || 0) < now) {
           aFiles.push(o.objectid);
