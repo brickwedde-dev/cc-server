@@ -2,6 +2,11 @@ const fs = require('fs').promises;
 const fssync = require('fs');
 const crypto = require('crypto');
 
+function isDefined(v) {
+  var t = typeof v;
+  return t != "null" && t != "undefined" && t != "void";
+}
+
 class StorageFilePlugin {
   constructor(types, options) {
     this.api = new StorageFileApi(this, types, options);
@@ -142,12 +147,12 @@ class StorageFileApi {
         });
     }
 
-    deleteObject(oInfo, type, objId) {
+    deleteObject(oInfo, type, objectid) {
         var path = this.getDbPath(oInfo, type);
         if (!isDefined(path)) {
             return Promise.reject();
         }
-        return new Promise(async (resolve, reject, objectid) => {
+        return new Promise(async (resolve, reject) => {
             try {
                 if (this.options.checkDeletePermission) {
                     await this.options.checkDeletePermission(oInfo, type);
