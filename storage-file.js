@@ -17,18 +17,36 @@ class StorageFilePlugin {
 class StorageFileApi {
     constructor (plugin, types, options) {
         this.options = options || {};
-        this.db = {};
-        for(let type of types) {
-            var folder = type.replace(/[/\\?%*:|"<>\\.]/g, '-');
-            this.db[type] = `${options.pathprefix}/${folder}/`;
-            try {
-                fssync.mkdirSync(this.db[type]);
-            } catch (e) {
-            }
+        this.types = types;
+    }
+
+    getDbPath(oInfo, type) {
+        if (this.types.indexOf(type) < 0) {
+            return undefined;
         }
+        var folder = type.replace(/[/\\?%*:|"<>\\.]/g, '-');
+        var pathprefix = this.options.pathprefix;
+        if(typeof(pathprefix) === "function") {
+            pathprefix = pathprefix(oInfo);
+        }
+        var path = `${pathprefix}/${folder}/`;
+        try {
+            if (!fssync.existsSync(pathprefix)) {
+                fssync.mkdirSync(pathprefix);
+            }
+            if (!fssync.existsSync(path)) {
+                fssync.mkdirSync(path);
+            }
+        } catch (e) {
+        }
+        return path;
     }
 
     listObjects(oInfo, type) {
+        var path = this.getDbPath(oInfo, type);
+        if (!isDefined(path)) {
+            return Promise.reject();
+        }
         return new Promise(async (resolve, reject) => {
             try {
                 if (oInfo && this.options.checkListPermission) {
@@ -39,11 +57,11 @@ class StorageFileApi {
                 return;
             }
             var aFiles = [];
-            var dir = await fs.opendir(this.db[type]);
+            var dir = await fs.opendir(path);
             for await (const dirent of dir) {
                 try {
                     if(dirent.isFile()) {
-                        aFiles.push(JSON.parse(await fs.readFile(this.db[type] + "/" + dirent.name)));
+                        aFiles.push(JSON.parse(await fs.readFile(path + "/" + dirent.name)));
                     }
                 } catch (e) {
                 }
@@ -53,6 +71,10 @@ class StorageFileApi {
     }
 
     getObjectByField(oInfo, type, field, content) {
+        var path = this.getDbPath(oInfo, type);
+        if (!isDefined(path)) {
+            return Promise.reject();
+        }
         return new Promise(async (resolve, reject) => {
             try {
                 if (oInfo && this.options.checkListPermission) {
@@ -63,11 +85,11 @@ class StorageFileApi {
                 return;
             }
             var aFiles = [];
-            var dir = await fs.opendir(this.db[type]);
+            var dir = await fs.opendir(path);
             for await (const dirent of dir) {
                 try {
                     if(dirent.isFile()) {
-                        var obj = JSON.parse(await fs.readFile(this.db[type] + "/" + dirent.name));
+                        var obj = JSON.parse(await fs.readFile(path + "/" + dirent.name));
                         if (bj && obj[field] === content) {
                            aFiles.push(obj);
                         }
@@ -95,6 +117,10 @@ class StorageFileApi {
     }
 
     updateObject(oInfo, type, obj) {
+        var path = this.getDbPath(oInfo, type);
+        if (!isDefined(path)) {
+            return Promise.reject();
+        }
         return new Promise(async (resolve, reject) => {
             try {
                 if (this.options.checkUpdatePermission) {
@@ -105,8 +131,8 @@ class StorageFileApi {
                 return;
             }
 
-            objectid = obj.objectid.replace(/[/\\?%*:|"<>\\.]/g, '-');
-            fs.writeFile(this.db[type] + "/" + objectid, JSON.stringify(obj))
+            var objectid = obj.objectid.replace(/[/\\?%*:|"<>\\.]/g, '-');
+            fs.writeFile(path + "/" + objectid, JSON.stringify(obj))
             .then(() => {
                 resolve(obj);
             })
@@ -117,6 +143,10 @@ class StorageFileApi {
     }
 
     deleteObject(oInfo, type, objId) {
+        var path = this.getDbPath(oInfo, type);
+        if (!isDefined(path)) {
+            return Promise.reject();
+        }
         return new Promise(async (resolve, reject, objectid) => {
             try {
                 if (this.options.checkDeletePermission) {
@@ -128,7 +158,7 @@ class StorageFileApi {
             }
             objectid = objectid.replace(/[/\\?%*:|"<>\\.]/g, '-');
             try {
-                await fs.unlink(this.db[type] + "/" + objectid);
+                await fs.unlink(path + "/" + objectid);
                 resolve(true);
             } catch (e) {
             }
