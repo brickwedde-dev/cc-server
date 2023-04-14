@@ -139,6 +139,12 @@ class StorageFileApi {
             var objectid = obj.objectid.replace(/[/\\?%*:|"<>\\.]/g, '-');
             fs.writeFile(path + "/" + objectid, JSON.stringify(obj))
             .then(() => {
+                try {
+                    if (this.options.changeEvent) {
+                        this.options.changeEvent(oInfo, type, obj);
+                    }
+                } catch (e) {
+                }
                 resolve(obj);
             })
             .catch((e) => {
@@ -164,6 +170,12 @@ class StorageFileApi {
             objectid = objectid.replace(/[/\\?%*:|"<>\\.]/g, '-');
             try {
                 await fs.unlink(path + "/" + objectid);
+                try {
+                    if (this.options.deleteEvent) {
+                        this.options.deleteEvent(oInfo, type, objectid);
+                    }
+                } catch (e) {
+                }
                 resolve(true);
             } catch (e) {
             }
