@@ -668,6 +668,7 @@ module.exports = {
 
     if (key && cert) {
       if (domains) {
+        setTimeout(() => { runLetsencryptv2 (domains, key, cert); }, 1000);
         setInterval(() => { runLetsencryptv2 (domains, key, cert); }, 24 * 3600 * 1000);
       }
       const reloadcertkey = debounce(() => { console.log("cert files refreshed"); reloadcert(server, key, cert); }, 10000);
