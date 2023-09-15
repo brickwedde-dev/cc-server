@@ -72,8 +72,8 @@ class Core {
         });
     }
 
-    createWebServer1 (bind, port, privkey, fullchain, domains, mapping) {
-        this.serverinstance = createWebserver(bind, port, privkey, fullchain, domains, mapping);
+    createWebServer1 (bind, port, privkey, fullchain, domains, maintainerEmail, mapping) {
+        this.serverinstance = createWebserver(bind, port, privkey, fullchain, domains, maintainerEmail, mapping);
     }
 
     getApiForPlugin(plugin) {

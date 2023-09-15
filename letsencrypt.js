@@ -6,8 +6,10 @@ const CSR = require('@root/csr');
 const PEM = require('@root/pem');
 const acmewebroot = require('acme-http-01-webroot');
 const cert2json = require('cert2json');
+const fssync = require('fs');
+const fs = require('fs').promises;
 
-async function runLetsencryptv2 (domains, key, cert) {
+async function runLetsencryptv2 (domains, key, cert, maintainerEmail) {
   if (fssync.existsSync(cert)) {
     const certificate = cert2json.parseFromFile(cert);
     var exp = new Date(certificate.tbs.validity.notAfter).getTime();
@@ -30,7 +32,7 @@ async function runLetsencryptv2 (domains, key, cert) {
     console.log(ev, msg.altname || '', msg.status || '');
   }
 
-  const acme = ACME.create({ maintainerEmail: maintainerEmail, packageAgent, notify });
+  const acme = ACME.create({ maintainerEmail, packageAgent, notify });
   var directoryUrl = 'https://acme-staging-v02.api.letsencrypt.org/directory';
   directoryUrl = 'https://acme-v02.api.letsencrypt.org/directory';
   await acme.init(directoryUrl);
