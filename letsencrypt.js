@@ -9,8 +9,8 @@ const cert2json = require('cert2json');
 
 async function runLetsencryptv2 (domains, key, cert) {
   if (fssync.existsSync(cert)) {
-    const cert = cert2json.parseFromFile(cert);
-    var exp = new Date(cert.tbs.validity.notAfter).getTime();
+    const certificate = cert2json.parseFromFile(cert);
+    var exp = new Date(certificate.tbs.validity.notAfter).getTime();
     var now15 = new Date().getTime() + 7 * 24 * 60 * 60 * 1000;
     if (exp > now15) {
       console.log(`expire in ${(exp - now15) / (24 * 3600000)}`);
