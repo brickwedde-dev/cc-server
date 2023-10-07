@@ -1,4 +1,4 @@
-const pkg = require.main.require('../package.json');
+const pkg = require.main.require('./package.json');
 const ACME = require('acme');
 const Keypairs = require('@root/keypairs');
 const punycode = require('punycode');
