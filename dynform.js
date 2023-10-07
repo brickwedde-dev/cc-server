@@ -37,8 +37,8 @@ class DynamicFormApi {
     formtype = ("" + formtype).replace(/\.\./g, "_") + ".json";
 
     return new Promise(async (resolve, reject) => {
-      var formdef = await fs.readFile("../dynform/definition/" + formtype);
       try {
+        var formdef = await fs.readFile("../dynform/definition/" + formtype);
         if (formdef) {
           formdef = JSON.parse(formdef);
           resolve(formdef);
@@ -195,10 +195,10 @@ class DynamicFormApi {
   }
 
   list(oInfo, type) {
+    if (!oInfo.user.features.admin) {
+        return Promise.reject("Not Admin!");
+    }
     return new Promise(async (resolve, reject) => {
-      if (!oInfo.user.features.admin) {
-          return Promise.reject("Not Admin!");
-      }
 
       type = type.replace(/[/\\?%*:|"<>\\.]/g, '-');
 
@@ -222,11 +222,11 @@ class DynamicFormApi {
   }
 
   delete(oInfo, type) {
-    return new Promise(async (resolve, reject, objectid) => {
-      if (!oInfo.user.features.admin) {
-          return Promise.reject("Not Admin!");
-      }
+    if (!oInfo.user.features.admin) {
+        return Promise.reject("Not Admin!");
+    }
 
+    return new Promise(async (resolve, reject, objectid) => {
       type = type.replace(/[/\\?%*:|"<>\\.]/g, '-');
       objectid = objectid.replace(/[/\\?%*:|"<>\\.]/g, '-');
       try {
@@ -239,11 +239,10 @@ class DynamicFormApi {
   }
 
   clean (oInfo) {
+    if (!oInfo.user.features.admin) {
+        return Promise.reject("Not Admin!");
+    }
     return new Promise(async (resolve, reject) => {
-      if (!oInfo.user.features.admin) {
-          return Promise.reject("Not Admin!");
-      }
-
       type = type.replace(/[/\\?%*:|"<>\\.]/g, '-');
       var aFiles = [];
       var dir = await fs.opendir("../dynform/storage/" + type);
