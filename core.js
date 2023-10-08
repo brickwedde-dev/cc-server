@@ -17,94 +17,53 @@ class AutoLoadClientApi {
     }
 
     load(oInfo, type) {
-        return Promise.resolve(new WebserverResponse(200, {
-                'Content-Type': "text/javascript",
-                'X-Text': type,
+        return Promise.resolve(new WebserverResponse(200,
+            {
+                'Content-Type': "application/json",
+                'X-Type': type,
                 'Cache-Control' : ['public, max-age=0'],
                 'Expires' : new Date(0).toGMTString()
-                }, `
-function loadJs(url) {
-  return new Promise((resolve, reject) => {
-    var script = document.createElement("script");
-    script.addEventListener("load", () => {
-      console.log("OK!", url)
-      resolve(url);
-    });
-    script.addEventListener("error", () => {
-      console.log("Failed!", url)
-      reject(url);
-    });
-    script.async = false;
-    script.setAttribute("src", url);
-    script.type = "text/javascript";
-    document.head.append(script);
-  });
-}
-
-function loadStyle(url) {
-  return new Promise((resolve, reject) => {
-    var style = document.createElement("link");
-    style.addEventListener("load", () => {
-      console.log("OK!", url)
-      resolve(url);
-    });
-    style.addEventListener("error", () => {
-      console.log("Failed!", url)
-      reject(url);
-    });
-    style.async = false;
-    style.setAttribute("rel", "stylesheet");
-    style.setAttribute("href", url);
-    document.head.append(style);
-  });
-}
-
-function loadCc() {
-  var a = [];
-  a.push(loadStyle("/common/cc-material-helpers/material-components-web.css"))
-  a.push(loadStyle("/common/cc-material-helpers/materialicons.css"))
-
-  a.push(loadJs("/common/cc-material-helpers/util.js"))
-  a.push(loadJs("/common/cc-material-helpers/material-components-web.js"))
-  a.push(loadJs("/common/cc-material-helpers/safari-polyfill.js"))
-  a.push(loadJs("/common/cc-material-helpers/CcMdcDrawer.js"))
-  a.push(loadJs("/common/cc-material-helpers/CcMdcTopAppBar.js"))
-  a.push(loadJs("/common/cc-material-helpers/CcMdcTextField.js"))
-  a.push(loadJs("/common/cc-material-helpers/CcMdcTextArea.js"))
-  a.push(loadJs("/common/cc-material-helpers/CcMdcCheckbox.js"))
-  a.push(loadJs("/common/cc-material-helpers/CcMdcListItem.js"))
-  a.push(loadJs("/common/cc-material-helpers/CcMdcButton.js"))
-  a.push(loadJs("/common/cc-material-helpers/CcMdcSelect.js"))
-  a.push(loadJs("/common/cc-material-helpers/CcMdcDialog.js"))
-  a.push(loadJs("/common/cc-material-helpers/CcMdcList.js"))
-  a.push(loadJs("/common/cc-material-helpers/CcMdcChips.js"))
-  a.push(loadJs("/common/cc-material-helpers/CcAceEditor.js"))
-  a.push(loadJs("/common/cc-material-helpers/CcMdcFloatingActionButton.js"))
-  a.push(loadJs("/common/cc-api-client/CcApi2.js"))
-  a.push(loadJs("/common/cc-api-client/CcSimpleAuthLoginDlg.js"))
-  a.push(loadJs("/common/cc-api-client/CcSimpleAuthUserList.js"))
-  a.push(loadJs("/common/cc-api-client/CcSimpleAuthUserEditor.js"))
-  a.push(loadJs("/common/cc-app/CcApp.js"))
-  a.push(loadJs("/common/cc-big-table/CcBigTable.js"))
-  a.push(loadJs("/common/cc-dynamicform-client/CcDynamicForm.js"))
-  a.push(loadJs("/common/cc-dynamicform-client/CcDynamicFormAdmin.js"))
-  a.push(loadJs("/common/cc-dynamicform-client/CcTooltip.js"))
-  a.push(loadJs("/common/cc-dynamicform-client/CcCustomContextMenu.js"))
-
-  return Promise.all(a)
-}
-
-loadCc()
-.then(() => {
-    loadCcOk();
-})
-.catch(() => {
-    alert("Loading Cc failed");
-    throw "Loading Cc failed";
-});
-                `));
+            },
+            JSON.stringify(
+                {
+                    "scripts" : [
+                        "/common/cc-material-helpers/util.js",
+                        "/common/cc-material-helpers/material-components-web.js",
+                        "/common/cc-material-helpers/safari-polyfill.js",
+                        "/common/cc-material-helpers/CcMdcDrawer.js",
+                        "/common/cc-material-helpers/CcMdcTopAppBar.js",
+                        "/common/cc-material-helpers/CcMdcTextField.js",
+                        "/common/cc-material-helpers/CcMdcTextArea.js",
+                        "/common/cc-material-helpers/CcMdcCheckbox.js",
+                        "/common/cc-material-helpers/CcMdcListItem.js",
+                        "/common/cc-material-helpers/CcMdcButton.js",
+                        "/common/cc-material-helpers/CcMdcSelect.js",
+                        "/common/cc-material-helpers/CcMdcDialog.js",
+                        "/common/cc-material-helpers/CcMdcList.js",
+                        "/common/cc-material-helpers/CcMdcChips.js",
+                        "/common/cc-material-helpers/CcAceEditor.js",
+                        "/common/cc-material-helpers/CcMdcFloatingActionButton.js",
+                        "/common/cc-api-client/CcApi2.js",
+                        "/common/cc-api-client/CcSimpleAuthLoginDlg.js",
+                        "/common/cc-api-client/CcSimpleAuthUserList.js",
+                        "/common/cc-api-client/CcSimpleAuthUserEditor.js",
+                        "/common/cc-app/CcApp2.js",
+                        "/common/cc-big-table/CcBigTable.js",
+                        "/common/cc-dynamicform-client/CcDynamicForm.js",
+                        "/common/cc-dynamicform-client/CcDynamicFormAdmin.js",
+                        "/common/cc-dynamicform-client/CcTooltip.js",
+                        "/common/cc-dynamicform-client/CcCustomContextMenu.js",
+                    ],
+                    "styles" : [
+                        "/common/cc-material-helpers/material-components-web.css",
+                        "/common/cc-material-helpers/materialicons.css",
+                    ],
+                }
+            )
+        ));
     }
 }
+
 
 class Core {
     constructor() {
