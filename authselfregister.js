@@ -118,10 +118,10 @@ class AuthSelfRegisterApi extends AuthSimpleApi {
           case "emaillogin":
             jwt.sign({
               iss: 'AuthSelfRegisterApi',
-              sub: `username:${username}`,
+              sub: `email:${username}`,
               iat: parseInt(new Date().getTime()/1000),
               exp: parseInt(new Date().getTime()/1000) + 3600,
-              aud: `username:${username}`,
+              aud: `email:${username}`,
             }, this.options.secret || "TheSecret" , undefined, (err, cert) => {
               if (err) {
                 reject("Failed creating token")
@@ -136,8 +136,19 @@ class AuthSelfRegisterApi extends AuthSimpleApi {
 
                 console.log (`User '${username}' email cert '${cert}' created`);
 
-//                sendmail(message)
-                Promise.resolve()
+                let account = {
+                    smtp : {
+                        host : "10.1.0.3",
+                        port : 25,
+                        secure : false,
+                    },
+                    user : "root",
+                    pass : "root",
+                    from : "troy@brickwedde.dev",
+                }
+
+                sendmail(account, message)
+//                Promise.resolve()
                 .then(() => {
                   resolve({ok:true});
                 })
