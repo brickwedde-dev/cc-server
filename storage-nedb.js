@@ -77,16 +77,21 @@ class StorageNedbApi {
                 reject("Permission denied")
                 return;
             }
-            this.db[type].insert(obj, (err, obj) => {
-                if (!err && obj) {
-                    if (this.options.insertedCallback) {
-                        this.options.insertedCallback(type, obj._id);
+            try {
+                this.db[type].insert(obj, (err, obj) => {
+                    if (!err && obj) {
+                        if (this.options.insertedCallback) {
+                            this.options.insertedCallback(type, obj._id);
+                        }
+                        resolve(obj);
+                    } else {
+                        reject(`Adding ${type} failed:` + err);
                     }
-                    resolve(obj);
-                } else {
-                    reject(`Adding ${type} failed:` + err);
-                }
-            });
+                });
+            } catch (e) {
+                reject(`Exception: ${e} for ${type}`)
+                return;
+            }
         });
     }
 

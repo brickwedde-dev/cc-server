@@ -1,9 +1,14 @@
 const crypto = require('crypto');
-const { getBearerFromReq } = require('./authsimple.js');
+const { getBearerFromReq, AuthSimpleApi } = require('./authsimple.js');
+const jwt = require('jsonwebtoken');
+const { sendmail } = require('../sendmail.js');
+var { WebserverResponse } = require('../cc-webserver/webserver4.js');
 
 class AuthSelfRegisterPlugin {
-  constructor(storagePlugin, usersType, sessionsType) {
+  constructor(storagePlugin, registerType, usersType, sessionsType, options) {
+    this.options = options || {};
     this.usersType = usersType;
+    this.registerType = registerType;
     this.sessionsType = sessionsType;
     this.storage = storagePlugin;
     this.storage.api.getObjectByField(null, this.usersType, "username", "admin")
@@ -17,13 +22,13 @@ class AuthSelfRegisterPlugin {
       })
       .catch((e) => {
       });
-    this.api = new AuthSimpleApi(this, this.storage, usersType, sessionsType);
+    this.api = new AuthSelfRegisterApi(this, this.registerType, this.storage, usersType, sessionsType, this.options);
   }
 
   getsession (oInfo, req, res, method) {
     return new Promise((resolve, reject) => {
       console.log("method:" + method + ".");
-      if (method == "login" || method == "selfregister") {
+      if (method == "login" || method == "selfregister" || method == "certlogin") {
         resolve(oInfo);
         return;
       }
@@ -42,18 +47,7 @@ class AuthSelfRegisterPlugin {
                 return;
               }
               oInfo.session = sessions[0];
-              this.storage.api.getObjectByField(null, this.usersType, "username", oInfo.session.username)
-                .then((users) => {
-                  if (users.length > 0) {
-                    oInfo.user = users[0];
-                    resolve(oInfo);
-                  } else {
-                    reject(`Session got invalid, user removed`);
-                  }
-                })
-                .catch((e) => {
-                  reject(`Session invalid: ` + e);
-                });
+              resolve(sessions[0]);
             } else {
               reject(`No session found`);
             }
@@ -73,7 +67,7 @@ class AuthSelfRegisterPlugin {
   }
 
   checksession (oInfo, req, res, user, method) {
-    if (method == "login" || method == "selfregister") {
+    if (method == "login" || method == "selfregister" || method == "certlogin") {
       return Promise.resolve(oInfo);
     }
     if (!oInfo.session) {
@@ -83,48 +77,36 @@ class AuthSelfRegisterPlugin {
   }
 }
 
-class AuthSimpleApi {
-  constructor(plugin, storage, usersType, sessionsType) {
-    this.usersType = usersType;
-    this.sessionsType = sessionsType;
-    this.plugin = plugin;
-    this.storage = storage;
+class AuthSelfRegisterApi extends AuthSimpleApi {
+  constructor (plugin, registerType, storagePlugin, usersType, sessionsType, options) {
+    super(plugin, storagePlugin, usersType, sessionsType);
+    this.options = options;
+    this.registerType = registerType;
   }
 
-  invalidatesessionkey (oInfo) {
-    return true;
+  checksession(oInfo) {
+    return Promise.resolve(oInfo);
   }
 
-  checksessionkey (oInfo) {
-    return oInfo;
-  }
-
-  login (oInfo, username, password) {
+  certlogin (oInfo, cert) {
     return new Promise((resolve, reject) => {
-      const hash = crypto.createHash('sha256');
-      hash.update(`${username}:${password}:v1`);
-      password = hash.digest('hex');
-      this.storage.api.getObjectByField(null, this.usersType, "username", username)
-        .then((users) => {
-          if (users.length > 0 && users[0].secrettype == `password` && users[0].secret == password) {
-            const hash = crypto.createHash('sha256');
-            hash.update(username + "SessionKey" + Date.now());
-            const sessionkey = hash.digest('hex');
-            const session = { userid: users[0]._id, username, timestamp: Date.now(), sessionkey };
-            this.storage.api.addObject(null, this.sessionsType, session)
-              .then((ok) => {
-                resolve(session);
-              })
-              .catch((e) => {
-                reject(`Auth '${username}' with '${password}' failed, session-db:` + e);
-              });
-          } else {
-            reject(`Auth '${username}' with '${password}' failed 2`);
-          }
-        })
-        .catch((e) => {
-          reject(`Auth '${username}' with '${password}' failed 1`);
-        });
+      jwt.verify(cert, this.options.secret || "TheSecret", (err, decoded) => {
+        if (err) {
+          reject ("Not authorized");
+        } else {
+          const hash = crypto.createHash('sha256');
+          hash.update(decoded.sub + "SessionKey" + Date.now());
+          const sessionkey = hash.digest('hex');
+          const session = { userid: decoded.sub, username: decoded.sub, timestamp: Date.now(), sessionkey };
+          this.storage.api.addObject(null, this.sessionsType, session)
+          .then((ok) => {
+            resolve(session);
+          })
+          .catch((e) => {
+            reject(`Auth '${decoded.sub}' with cert failed, session-db:` + e);
+          });
+        }
+      });
     });
   }
 
@@ -132,24 +114,61 @@ class AuthSimpleApi {
     return new Promise((resolve, reject) => {
       this.storage.api.getObjectByField(null, this.usersType, "username", username)
       .then((users) => {
-        if (!users || users.length == 0) {
-          var password = "1234";
-          var hash = crypto.createHash('sha256');
-          hash.update(`${username}:${password}:v1`);
-          var secret = hash.digest('hex');
-          var user = { username, secrettype : "password", secret };
-          this.storage.api.addObject(null, this.usersType, user)
-          .then(() => {
-            console.log (`User with password '${password}' created`);
-            resolve({ok:true});
-          })
-          .catch((e) => {
-            console.error("register error:", e);
-            reject (e);
-          });
-        } else {
-          console.error("duplicate user");
-          reject(`User ${username} already registered.`);
+        switch (this.registerType) {
+          case "emaillogin":
+            jwt.sign({
+              iss: 'AuthSelfRegisterApi',
+              sub: `username:${username}`,
+              iat: parseInt(new Date().getTime()/1000),
+              exp: parseInt(new Date().getTime()/1000) + 3600,
+              aud: `username:${username}`,
+            }, this.options.secret || "TheSecret" , undefined, (err, cert) => {
+              if (err) {
+                reject("Failed creating token")
+              } else {
+                let message = {
+                    to: username,
+                    subject: 'Your self registration',
+                    text: `Click on http://127.0.0.1/certlogin.html?#${cert} to log in`,
+                    html: `Click on <a href="http://127.0.0.1/certlogin.html?#${cert}">this link</a> to log in`,
+                    attachments: []
+                };
+
+                console.log (`User '${username}' email cert '${cert}' created`);
+
+//                sendmail(message)
+                Promise.resolve()
+                .then(() => {
+                  resolve({ok:true});
+                })
+                .catch((e) => {
+                  reject("Sending mail failed");
+                })
+              }
+            });
+            break;
+
+          case "createpassword":
+            if (!users || users.length == 0) {
+              var password = crypto.createHash('sha256').update(`Some timestamp ${new Date().getTime()}`).digest('hex').substring(0, 10);
+              var hash = crypto.createHash('sha256');
+              hash.update(`${username}:${password}:v1`);
+              var secret = hash.digest('hex');
+              var user = { username, secrettype : "password", secret };
+              this.storage.api.addObject(null, this.usersType, user)
+              .then(() => {
+                console.log (`User with password '${password}' created`);
+                resolve({ok:true});
+              })
+              .catch((e) => {
+                console.error("register error:", e);
+                reject (e);
+              });
+            } else {
+              console.error("duplicate user");
+              reject(`User ${username} already registered.`);
+            }
+            break;
         }
       })
       .catch((e) => {
@@ -157,91 +176,6 @@ class AuthSimpleApi {
         reject(`Register ${username}' failed`);
       });
     })
-  }
-
-  changepassword (oInfo, oldpassword, newpassword) {
-    return new Promise((resolve, reject) => {
-      var hash = crypto.createHash('sha256');
-      hash.update(`${oInfo.session.username}:${oldpassword}:v1`);
-      var secret = hash.digest('hex');
-      console.log({ secret, _id: oInfo.session.userid });
-      this.storage.api.getObjectByField(null, this.usersType, "_id", oInfo.session.userid)
-        .then((users) => {
-          if (users.length > 0 && users[0].secrettype == `password` && users[0].secret == secret) {
-            var hash = crypto.createHash('sha256');
-            hash.update(`${oInfo.session.username}:${newpassword}:v1`);
-            users[0].secret = hash.digest('hex');
-            this.storage.api.updateObject(null, this.usersType, users[0])
-              .then(() => {
-                resolve(true);
-              })
-              .catch((e) => {
-                reject(`Changing password auth '${oInfo.session.username}' failed 3`);
-              });
-          } else {
-            reject(`Changing password auth '${oInfo.session.username}' failed 2`);
-          }
-        })
-        .catch((e) => {
-          reject(`Changing password auth '${oInfo.session.username}' failed 1`);
-        });
-    });
-  }
-
-  listUsers(oInfo) {
-    if (!oInfo.user.features.admin) {
-        return Promise.reject("Not Admin!");
-    }
-    return this.storage.api.listObjects(oInfo, this.usersType);
-  }
-
-  addUser(oInfo, user) {
-    if (!oInfo.user.features.admin) {
-        return Promise.reject("Not Admin!");
-    }
-    return this.storage.api.addObject(oInfo, this.usersType, user);
-  }
-
-  updateUser(oInfo, user) {
-    if (!oInfo.user.features.admin) {
-        return Promise.reject("Not Admin!");
-    }
-    return this.storage.api.updateObject(oInfo, this.usersType, user);
-  }
-
-  deleteUser(oInfo, id) {
-    if (!oInfo.user.features.admin) {
-        return Promise.reject("Not Admin!");
-    }
-    return this.storage.api.deleteObject(oInfo, this.usersType, id);
-  }
-
-  resetUserPassword(oInfo, user) {
-    if (!oInfo.user.features.admin) {
-        return Promise.reject("Not Admin!");
-    }
-    return new Promise((resolve, reject) => {
-      this.storage.api.getObjectByField(null, this.usersType, "_id", user._id)
-        .then((users) => {
-          if (users.length > 0 && users[0].secrettype == `password`) {
-            const hash = crypto.createHash('sha256');
-            hash.update(user.username + "::v1");
-            users[0].secret = hash.digest('hex');
-            this.storage.api.updateObject(oInfo, this.usersType, users[0])
-              .then(() => {
-                resolve(true);
-              })
-              .catch((e) => {
-                reject(`Resetting password '${user.username}' failed 3`);
-              });
-          } else {
-            reject(`Resetting password '${user.username}' failed 2`);
-          }
-        })
-        .catch((e) => {
-          reject(`Resetting password '${user.username}' failed 1 ` + e);
-        });
-    });
   }
 }
 

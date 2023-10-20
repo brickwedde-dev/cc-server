@@ -228,4 +228,4 @@ class AuthSimpleApi {
   }
 }
 
-module.exports = { AuthSimplePlugin, getBearerFromReq };
+module.exports = { AuthSimplePlugin, AuthSimpleApi, getBearerFromReq };
