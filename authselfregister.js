@@ -129,25 +129,25 @@ class AuthSelfRegisterApi extends AuthSimpleApi {
                 let message = {
                     to: username,
                     subject: 'Your self registration',
-                    text: `Click on http://127.0.0.1/certlogin.html?#${cert} to log in`,
-                    html: `Click on <a href="http://127.0.0.1/certlogin.html?#${cert}">this link</a> to log in`,
+                    text: `Click on http://127.0.0.1/jwtcert.html?/loginlink#${cert} to log in`,
+                    html: `Click on <a href="http://127.0.0.1/certlogin.html?/loginlink#${cert}">this link</a> to log in`,
                     attachments: []
                 };
 
                 console.log (`User '${username}' email cert '${cert}' created`);
 
-                let account = {
+                var emailaccount = this.options.emailaccount || {
                     smtp : {
-                        host : "10.1.0.3",
+                        host : "127.0.0.1",
                         port : 25,
                         secure : false,
                     },
-                    user : "root",
-                    pass : "root",
-                    from : "troy@brickwedde.dev",
+                    user : "username",
+                    pass : "password",
+                    from : "email@domain",
                 }
 
-                sendmail(account, message)
+                sendmail(emailaccount, message)
 //                Promise.resolve()
                 .then(() => {
                   resolve({ok:true});

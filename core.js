@@ -20,7 +20,7 @@ class AutoLoadClientApi {
         return Promise.resolve(new WebserverResponse(200,
             {
                 'Content-Type': "application/json",
-                'X-Type': type,
+                'X-Type': type || "",
                 'Cache-Control' : ['public, max-age=0'],
                 'Expires' : new Date(0).toGMTString()
             },
