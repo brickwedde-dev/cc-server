@@ -82,7 +82,7 @@ class Core {
         console.log("oInfo:", JSON.stringify(oInfo))
         var authPromise = null;
         if (this.plugins["auth"]) {
-            authPromise = this.plugins["auth"].getsession(oInfo, req, res, method);
+            authPromise = this.plugins["auth"].getsession(oInfo, req, res, plugin, method);
         }
         if (!authPromise) {
             authPromise = Promise.reject("core no auth plugin");

@@ -25,10 +25,9 @@ class AuthSelfRegisterPlugin {
     this.api = new AuthSelfRegisterApi(this, this.registerType, this.storage, usersType, sessionsType, this.options);
   }
 
-  getsession (oInfo, req, res, method) {
+  getsession (oInfo, req, res, plugin, method) {
     return new Promise((resolve, reject) => {
-      console.log("method:" + method + ".");
-      if (method == "login" || method == "selfregister" || method == "certlogin") {
+      if (plugin == "auth" && (method == "login" || method == "selfregister" || method == "certlogin")) {
         resolve(oInfo);
         return;
       }

@@ -34,10 +34,9 @@ class AuthSimplePlugin {
     this.api = new AuthSimpleApi(this, this.storage, usersType, sessionsType);
   }
 
-  getsession (oInfo, req, res, method) {
+  getsession (oInfo, req, res, plugin, method) {
     return new Promise((resolve, reject) => {
-      console.log("method:" + method + ".");
-      if (method == "login") {
+      if (plugin == "auth" && method == "login") {
         resolve(oInfo);
         return;
       }
