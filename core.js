@@ -55,7 +55,7 @@ class AutoLoadClientApi {
                         "/common/cc-dynamicform-client/CcCustomContextMenu.js",
                     ],
                     "styles" : [
-                        "/common/cc-material-helpers/material-components-web.css",
+                        "/common/cc-material-helpers/material-components-web-v2.css",
                         "/common/cc-material-helpers/materialicons.css",
                     ],
                 }
