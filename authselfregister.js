@@ -83,7 +83,8 @@ class AuthSelfRegisterApi extends AuthSimpleApi {
     this.registerType = registerType;
   }
 
-  checksession(oInfo) {
+  checksession(oInfo, req) {
+    oInfo.req = req;
     return Promise.resolve(oInfo);
   }
 
@@ -115,6 +116,12 @@ class AuthSelfRegisterApi extends AuthSimpleApi {
       .then((users) => {
         switch (this.registerType) {
           case "emaillogin":
+            var server = "kpf-user.nfsroot.de";
+            switch (oInfo.req.headers[":authority"]) {
+              case "kpf-user.localhost.nfsroot.de":
+                server = oInfo.req.headers[":authority"];
+                break;
+            }
             jwt.sign({
               iss: 'AuthSelfRegisterApi',
               sub: `email:${username}`,
@@ -128,8 +135,8 @@ class AuthSelfRegisterApi extends AuthSimpleApi {
                 let message = {
                     to: username,
                     subject: 'Your self registration',
-                    text: `Click on http://127.0.0.1/jwtcert.html?/loginlink#${cert} to log in`,
-                    html: `Click on <a href="http://127.0.0.1/certlogin.html?/loginlink#${cert}">this link</a> to log in`,
+                    text: `Click on https://${server}/?/loginlink#${cert} to log in`,
+                    html: `Click on <a href="https://${server}/?/loginlink#${cert}">this link</a> to log in`,
                     attachments: []
                 };
 
