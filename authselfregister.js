@@ -110,7 +110,7 @@ class AuthSelfRegisterApi extends AuthSimpleApi {
     });
   }
 
-  selfregister (oInfo, username) {
+  selfregister (oInfo, username, lang) {
     return new Promise((resolve, reject) => {
       this.storage.api.getObjectByField(null, this.usersType, "username", username)
       .then((users) => {
@@ -139,6 +139,19 @@ class AuthSelfRegisterApi extends AuthSimpleApi {
                     html: `Click on <a href="https://${server}/?/loginlink#${cert}">this link</a> to log in`,
                     attachments: []
                 };
+
+                switch(lang) {
+                  case "de":
+                    message.subject = `Ihre Anmeldung`;
+                    message.text = `Bitte klicken Sie diesen Link https://${server}/?/loginlink#${cert} um sich einzuloggen.`;
+                    message.html = `Bitte klicken Sie <a href="https://${server}/?/loginlink#${cert}">diesen Link</a> um sich einzuloggen.`;
+                    break;
+                  case "nl":
+                    message.subject = `Uw registratie`;
+                    message.text = `Klik deze link https://${server}/?/loginlink#${cert} om in te loggen.`;
+                    message.html = `Klik <a href="https://${server}/?/loginlink#${cert}">deze link</a> om in te loggen.`;
+                    break;
+                }
 
                 console.log (`User '${username}' email cert '${cert}' created`);
 
