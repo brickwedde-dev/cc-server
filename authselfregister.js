@@ -166,6 +166,8 @@ class AuthSelfRegisterApi extends AuthSimpleApi {
                     from : "email@domain",
                 }
 
+                console.log(`${message.text}`)
+
                 sendmail(emailaccount, message)
 //                Promise.resolve()
                 .then(() => {
