@@ -47,6 +47,8 @@ class AutoLoadClientApi {
                         "/common/cc-api-client/CcSimpleAuthLoginDlg.js",
                         "/common/cc-api-client/CcSimpleAuthUserList.js",
                         "/common/cc-api-client/CcSimpleAuthUserEditor.js",
+                        "/common/cc-api-client/CcTranslationList.js",
+                        "/common/cc-api-client/CcTranslationEditor.js",
                         "/common/cc-app/CcApp2.js",
                         "/common/cc-big-table/CcBigTable.js",
                         "/common/cc-dynamicform-client/CcDynamicForm.js",
@@ -86,6 +88,9 @@ class Core {
         }
         if (!authPromise) {
             authPromise = Promise.reject("core no auth plugin");
+        }
+        if (!this.plugins[plugin]) {
+            return Promise.reject("No such plugin")
         }
 
         return new Promise((resolve, reject) => {

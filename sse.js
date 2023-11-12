@@ -8,11 +8,7 @@ class SsePlugin {
 
   checksession (oInfo, req, res, user, method) {
     return new Promise((resolve, reject) => {
-      if (user) {
-        resolve();
-        return;
-      }
-      reject(`Not authorized`);
+      resolve();
     });
   }
 }
