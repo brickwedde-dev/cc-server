@@ -46,6 +46,7 @@ class AuthSelfRegisterPlugin {
                 return;
               }
               oInfo.session = sessions[0];
+              oInfo.acceptLanguage = req.headers["accept-language"] || "";
               resolve(sessions[0]);
             } else {
               reject(`No session found`);

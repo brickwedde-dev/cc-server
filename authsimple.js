@@ -59,6 +59,7 @@ class AuthSimplePlugin {
                 .then((users) => {
                   if (users.length > 0) {
                     oInfo.user = users[0];
+                    oInfo.acceptLanguage = req.headers["accept-language"] || "";
                     resolve(oInfo);
                   } else {
                     reject(`Session got invalid, user removed`);
