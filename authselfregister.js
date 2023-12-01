@@ -117,9 +117,10 @@ class AuthSelfRegisterApi extends AuthSimpleApi {
       .then((users) => {
         switch (this.registerType) {
           case "emaillogin":
-            var server = "kpf-user.nfsroot.de";
+            var server = "kpf.deutschland-nederland.eu";
             switch (oInfo.req.headers[":authority"]) {
               case "kpf-user.localhost.nfsroot.de":
+              case "kpf-user.nfsroot.de":
                 server = oInfo.req.headers[":authority"];
                 break;
             }
@@ -175,6 +176,7 @@ class AuthSelfRegisterApi extends AuthSimpleApi {
                   resolve({ok:true});
                 })
                 .catch((e) => {
+                  console.log("Send mail failed", e);
                   reject("Sending mail failed");
                 })
               }
