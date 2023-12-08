@@ -59,6 +59,26 @@ class StorageNedbApi {
         });
     }
 
+    getObjectByFields(oInfo, type, fields, contents) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (oInfo && this.options.checkGetPermission) {
+                    await this.options.checkGetPermission(oInfo, type);
+                }
+            } catch (e) {
+                reject("Permission denied")
+                return;
+            }
+            var search = {};
+            for(var i = 0; i < fields.length; i++) {
+                search[fields[i]] = contents[i];
+            }
+            this.db[type].find(search, (err, docs) => {
+                resolve(docs);
+            });
+        });
+    }
+
     addOrUpdateObject(oInfo, type, obj) {
         if (obj._id) {
             return this.updateObject(oInfo, type, obj);
