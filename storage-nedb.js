@@ -33,9 +33,8 @@ class StorageNedbApi {
                 reject("Permission denied")
                 return;
             }
-            console.log("listObjects", type)
             this.db[type].find({}, (err, docs) => {
-                console.log("listObjects", type, docs)
+//                console.log("listObjects", type, docs)
                 resolve(docs);
             });
         });
