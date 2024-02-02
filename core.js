@@ -33,6 +33,7 @@ class AutoLoadClientApi {
                         "/common/cc-material-helpers/CcMdcDrawer.js",
                         "/common/cc-material-helpers/CcMdcTopAppBar.js",
                         "/common/cc-material-helpers/CcMdcTextField.js",
+                        "/common/cc-material-helpers/CcMdcText.js",
                         "/common/cc-material-helpers/CcDrawing.js",
                         "/common/cc-material-helpers/CcMdcRadio2.js",
                         "/common/cc-material-helpers/CcMdcTextArea.js",
