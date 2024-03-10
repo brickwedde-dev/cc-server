@@ -46,6 +46,8 @@ class AuthSelfRegisterPlugin {
                 return;
               }
               oInfo.session = sessions[0];
+              oInfo.user = {};
+              oInfo.user.username = sessions[0].username;
               oInfo.acceptLanguage = req.headers["accept-language"] || "";
               resolve(sessions[0]);
             } else {
